@@ -1,0 +1,56 @@
+name: Student Insert Records Autograding
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  autograde:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+
+        env:
+          MYSQL_ROOT_PASSWORD: root
+
+        ports:
+          - 3306:3306
+
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install MySQL Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Wait for MySQL Server
+        run: |
+          until mysqladmin ping -h127.0.0.1 -uroot -proot --silent
+          do
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+          echo "MySQL is ready."
+
+      - name: Show Student SQL File
+        run: |
+          echo "===== student_solution.sql ====="
+          cat student_solution.sql
+
+      - name: Make Test Script Executable
+        run: |
+          chmod +x test.sh
+
+      - name: Run Test Cases
+        run: |
+          ./test.sh
